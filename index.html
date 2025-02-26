@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooker Whistle Counter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        .counter {
+            font-size: 50px;
+            font-weight: bold;
+            color: #ff5733;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .start-btn { background-color: green; color: white; }
+        .reset-btn { background-color: red; color: white; }
+    </style>
+</head>
+<body>
+
+    <h1>Cooker Whistle Counter</h1>
+    <p>Whistles Counted:</p>
+    <div class="counter" id="whistleCount">0</div>
+
+    <button class="start-btn" onclick="startListening()">Start Listening</button>
+    <button class="reset-btn" onclick="resetCounter()">Reset</button>
+
+    <script>
+        let audioContext, analyser, microphone, dataArray;
+        let whistleCount = 0;
+        let isListening = false;
+        let lastWhistleTime = 0;
+
+        function startListening() {
+            if (isListening) return;
+            isListening = true;
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    analyser.fftSize = 512;
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    microphone.connect(analyser);
+
+                    detectWhistle();
+                })
+                .catch(err => {
+                    alert("Microphone access denied or not available.");
+                    console.error(err);
+                });
+        }
+
+        function detectWhistle() {
+            analyser.getByteFrequencyData(dataArray);
+            let whistleDetected = false;
+
+            for (let i = 100; i < 200; i++) { // Whistles usually have high frequencies
+                if (dataArray[i] > 180) { // Threshold for whistle detection
+                    whistleDetected = true;
+                    break;
+                }
+            }
+
+            if (whistleDetected) {
+                let now = Date.now();
+                if (now - lastWhistleTime > 2000) { // Prevent counting the same whistle multiple times
+                    whistleCount++;
+                    document.getElementById("whistleCount").innerText = whistleCount;
+                    lastWhistleTime = now;
+                }
+            }
+
+            requestAnimationFrame(detectWhistle);
+        }
+
+        function resetCounter() {
+            whistleCount = 0;
+            document.getElementById("whistleCount").innerText = "0";
+        }
+    </script>
+
+</body>
+  </html>
+  
